@@ -19,69 +19,62 @@ import {
 
 interface SidebarProps {
   className?: string
+  currentPage?: string
+  onPageChange?: (page: string) => void
 }
 
 const navigation = [
   {
     name: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    current: true
+    id: 'dashboard',
+    icon: LayoutDashboard
   },
   {
     name: 'Content Creator',
-    href: '/create',
+    id: 'content-creator',
     icon: PenTool,
-    current: false,
     badge: 'AI'
   },
   {
     name: 'Media Library',
-    href: '/media',
-    icon: Image,
-    current: false
+    id: 'media-library',
+    icon: Image
   },
   {
     name: 'Publishing Calendar',
-    href: '/calendar',
-    icon: Calendar,
-    current: false
+    id: 'calendar',
+    icon: Calendar
   },
   {
     name: 'Platform Connections',
-    href: '/platforms',
+    id: 'platforms',
     icon: Link,
-    current: false,
     badge: '5'
   },
   {
     name: 'Ad Manager',
-    href: '/ads',
-    icon: Target,
-    current: false
+    id: 'ad-manager',
+    icon: Target
   },
   {
     name: 'Analytics',
-    href: '/analytics',
-    icon: BarChart3,
-    current: false
+    id: 'analytics',
+    icon: BarChart3
   },
   {
     name: 'Revenue Center',
-    href: '/revenue',
+    id: 'revenue',
     icon: DollarSign,
-    current: false,
     badge: '$2.4k'
   },
   {
     name: 'Settings',
-    href: '/settings',
-    icon: Settings,
-    current: false
+    id: 'settings',
+    icon: Settings
   }
 ]
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, currentPage = 'dashboard', onPageChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -113,7 +106,10 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Quick Create Button */}
       <div className="p-4">
-        <Button className="w-full gradient-bg hover:opacity-90 transition-opacity">
+        <Button 
+          className="w-full gradient-bg hover:opacity-90 transition-opacity"
+          onClick={() => onPageChange?.('content-creator')}
+        >
           <Plus className="w-4 h-4 mr-2" />
           {!collapsed && "Create Content"}
         </Button>
@@ -123,15 +119,17 @@ export function Sidebar({ className }: SidebarProps) {
       <nav className="flex-1 px-4 pb-4 space-y-1">
         {navigation.map((item) => {
           const Icon = item.icon
+          const isActive = currentPage === item.id
           return (
             <Button
               key={item.name}
-              variant={item.current ? "secondary" : "ghost"}
+              variant={isActive ? "secondary" : "ghost"}
               className={cn(
                 "w-full justify-start h-10",
-                item.current && "bg-primary/10 text-primary hover:bg-primary/15",
+                isActive && "bg-primary/10 text-primary hover:bg-primary/15",
                 collapsed && "px-2"
               )}
+              onClick={() => onPageChange?.(item.id)}
             >
               <Icon className={cn("h-4 w-4", !collapsed && "mr-3")} />
               {!collapsed && (

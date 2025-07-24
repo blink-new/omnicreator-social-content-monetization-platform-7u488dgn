@@ -12,7 +12,7 @@ import {
   Facebook,
   Youtube,
   Twitter,
-  Wordpress,
+  Globe,
   Target,
   Zap,
   ArrowUpRight,
@@ -86,7 +86,7 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
@@ -102,7 +102,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -281,7 +281,7 @@ export function Dashboard() {
                     <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
                       {content.type === 'video' && <Youtube className="w-6 h-6 text-red-600" />}
                       {content.type === 'post' && <Instagram className="w-6 h-6 text-pink-600" />}
-                      {content.type === 'blog' && <Wordpress className="w-6 h-6 text-blue-600" />}
+                      {content.type === 'blog' && <Globe className="w-6 h-6 text-blue-600" />}
                     </div>
                     <div>
                       <h4 className="font-medium">{content.title}</h4>
@@ -299,7 +299,7 @@ export function Dashboard() {
                               {platform === 'facebook' && <Facebook className="w-2 h-2" />}
                               {platform === 'youtube' && <Youtube className="w-2 h-2" />}
                               {platform === 'tiktok' && <div className="w-2 h-2 bg-black rounded-full" />}
-                              {platform === 'wordpress' && <Wordpress className="w-2 h-2" />}
+                              {platform === 'wordpress' && <Globe className="w-2 h-2" />}
                             </div>
                           ))}
                         </div>
