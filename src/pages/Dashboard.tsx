@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { blink } from '@/blink/client'
 import { 
   TrendingUp, 
   Users, 
@@ -78,10 +79,66 @@ const recentContent = [
 export function Dashboard() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [dashboardData, setDashboardData] = useState({
+    totalRevenue: 0,
+    totalReach: 0,
+    contentCount: 0,
+    adRevenue: 0,
+    recentContent: [],
+    platformConnections: []
+  })
 
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => setLoading(false), 1000)
+    const loadDashboardData = async () => {
+      try {
+        const user = await blink.auth.me()
+        setUser(user)
+
+        // Load revenue data
+        const revenueData = await blink.db.revenue_transactions.list({
+          where: { user_id: user.id },
+          orderBy: { created_at: 'desc' }
+        })
+
+        // Load content data
+        const contentData = await blink.db.content.list({
+          where: { user_id: user.id },
+          orderBy: { created_at: 'desc' },
+          limit: 5
+        })
+
+        // Load platform connections
+        const platformData = await blink.db.platform_connections.list({
+          where: { user_id: user.id, is_active: "1" }
+        })
+
+        // Calculate totals
+        const totalRevenue = revenueData.reduce((sum, transaction) => sum + transaction.amount, 0)
+        const adRevenue = revenueData
+          .filter(t => t.transaction_type === 'ad_revenue')
+          .reduce((sum, transaction) => sum + transaction.amount, 0)
+        
+        const totalReach = contentData.reduce((sum, content) => {
+          const metrics = content.engagement_metrics ? JSON.parse(content.engagement_metrics) : {}
+          return sum + (metrics.impressions || metrics.views || 0)
+        }, 0)
+
+        setDashboardData({
+          totalRevenue,
+          totalReach,
+          contentCount: contentData.length,
+          adRevenue,
+          recentContent: contentData,
+          platformConnections: platformData
+        })
+      } catch (error) {
+        console.error('Error loading dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDashboardData()
   }, [])
 
   if (loading) {
@@ -125,7 +182,7 @@ export function Dashboard() {
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">$3,247</div>
+            <div className="text-2xl font-bold text-green-600">${dashboardData.totalRevenue.toFixed(2)}</div>
             <div className="flex items-center text-xs text-green-600">
               <ArrowUpRight className="w-3 h-3 mr-1" />
               +12.5% from last month
@@ -139,7 +196,7 @@ export function Dashboard() {
             <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">847K</div>
+            <div className="text-2xl font-bold text-blue-600">{(dashboardData.totalReach / 1000).toFixed(0)}K</div>
             <div className="flex items-center text-xs text-blue-600">
               <ArrowUpRight className="w-3 h-3 mr-1" />
               +8.2% from last month
@@ -153,7 +210,7 @@ export function Dashboard() {
             <Calendar className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">73</div>
+            <div className="text-2xl font-bold text-purple-600">{dashboardData.contentCount}</div>
             <div className="flex items-center text-xs text-purple-600">
               <ArrowUpRight className="w-3 h-3 mr-1" />
               +15.3% from last month
@@ -167,7 +224,7 @@ export function Dashboard() {
             <Target className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">$1,847</div>
+            <div className="text-2xl font-bold text-orange-600">${dashboardData.adRevenue.toFixed(2)}</div>
             <div className="flex items-center text-xs text-orange-600">
               <ArrowUpRight className="w-3 h-3 mr-1" />
               +22.1% from last month
@@ -275,13 +332,15 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentContent.map((content) => (
+              {dashboardData.recentContent.map((content) => (
                 <div key={content.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center">
-                      {content.type === 'video' && <Youtube className="w-6 h-6 text-red-600" />}
-                      {content.type === 'post' && <Instagram className="w-6 h-6 text-pink-600" />}
-                      {content.type === 'blog' && <Globe className="w-6 h-6 text-blue-600" />}
+                      {content.content_type === 'reel' && <Youtube className="w-6 h-6 text-red-600" />}
+                      {content.content_type === 'post' && <Instagram className="w-6 h-6 text-pink-600" />}
+                      {content.content_type === 'blog' && <Globe className="w-6 h-6 text-blue-600" />}
+                      {content.content_type === 'story' && <Instagram className="w-6 h-6 text-purple-600" />}
+                      {content.content_type === 'carousel' && <Instagram className="w-6 h-6 text-orange-600" />}
                     </div>
                     <div>
                       <h4 className="font-medium">{content.title}</h4>
@@ -293,7 +352,7 @@ export function Dashboard() {
                           {content.status}
                         </Badge>
                         <div className="flex items-center space-x-1">
-                          {content.platforms.map((platform) => (
+                          {JSON.parse(content.platforms || '[]').map((platform) => (
                             <div key={platform} className="w-4 h-4 rounded-full bg-muted flex items-center justify-center">
                               {platform === 'instagram' && <Instagram className="w-2 h-2" />}
                               {platform === 'facebook' && <Facebook className="w-2 h-2" />}
@@ -310,11 +369,14 @@ export function Dashboard() {
                     <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                       <div className="flex items-center">
                         <Eye className="w-3 h-3 mr-1" />
-                        {content.views.toLocaleString()}
+                        {(() => {
+                          const metrics = content.engagement_metrics ? JSON.parse(content.engagement_metrics) : {}
+                          return (metrics.impressions || metrics.views || 0).toLocaleString()
+                        })()}
                       </div>
                       <div className="flex items-center">
                         <DollarSign className="w-3 h-3 mr-1" />
-                        ${content.revenue.toFixed(2)}
+                        ${(content.actual_revenue || 0).toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -353,33 +415,24 @@ export function Dashboard() {
             <div className="pt-4 border-t">
               <h4 className="font-medium mb-3">Platform Status</h4>
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Instagram className="w-4 h-4 text-pink-600" />
-                    <span className="text-sm">Instagram</span>
+                {dashboardData.platformConnections.map((connection) => (
+                  <div key={connection.id} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      {connection.platform === 'instagram' && <Instagram className="w-4 h-4 text-pink-600" />}
+                      {connection.platform === 'youtube' && <Youtube className="w-4 h-4 text-red-600" />}
+                      {connection.platform === 'facebook' && <Facebook className="w-4 h-4 text-blue-600" />}
+                      {connection.platform === 'tiktok' && <div className="w-4 h-4 bg-black rounded-full" />}
+                      {connection.platform === 'wordpress' && <Globe className="w-4 h-4 text-blue-600" />}
+                      <span className="text-sm capitalize">{connection.platform}</span>
+                    </div>
+                    <Badge variant="default" className="bg-green-100 text-green-700">
+                      Connected
+                    </Badge>
                   </div>
-                  <Badge variant="default" className="bg-green-100 text-green-700">
-                    Connected
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Youtube className="w-4 h-4 text-red-600" />
-                    <span className="text-sm">YouTube</span>
-                  </div>
-                  <Badge variant="default" className="bg-green-100 text-green-700">
-                    Connected
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Facebook className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm">Facebook</span>
-                  </div>
-                  <Badge variant="secondary">
-                    Disconnected
-                  </Badge>
-                </div>
+                ))}
+                {dashboardData.platformConnections.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No platforms connected yet</p>
+                )}
               </div>
             </div>
           </CardContent>

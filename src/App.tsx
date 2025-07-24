@@ -3,6 +3,12 @@ import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Dashboard } from '@/pages/Dashboard'
 import ContentCreator from '@/components/content/ContentCreator'
+import PublishingCalendar from '@/components/calendar/PublishingCalendar'
+import PlatformConnections from '@/components/platforms/PlatformConnections'
+import AdManager from '@/components/ads/AdManager'
+import Analytics from '@/components/analytics/Analytics'
+import RevenueCenter from '@/components/revenue/RevenueCenter'
+import Settings from '@/components/settings/Settings'
 import { Toaster } from '@/components/ui/toaster'
 import { blink } from '@/blink/client'
 import type { User } from '@/types'
@@ -103,6 +109,18 @@ function App() {
         return <Dashboard />
       case 'content-creator':
         return <ContentCreator />
+      case 'calendar':
+        return <PublishingCalendar />
+      case 'platforms':
+        return <PlatformConnections />
+      case 'ads':
+        return <AdManager />
+      case 'analytics':
+        return <Analytics />
+      case 'revenue':
+        return <RevenueCenter />
+      case 'settings':
+        return <Settings />
       default:
         return <Dashboard />
     }
